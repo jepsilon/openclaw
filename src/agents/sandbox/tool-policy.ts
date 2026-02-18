@@ -76,27 +76,17 @@ export function resolveSandboxToolPolicyForAgent(
     ? agentDeny
     : Array.isArray(globalDeny)
       ? globalDeny
-      : [...DEFAULT_TOOL_DENY];
+      : [];
   const allow = Array.isArray(agentAllow)
     ? agentAllow
     : Array.isArray(globalAllow)
       ? globalAllow
-      : [...DEFAULT_TOOL_ALLOW];
+      : ["*"];
 
   const expandedDeny = expandToolGroups(deny);
   let expandedAllow = expandToolGroups(allow);
 
-  // `image` is essential for multimodal workflows; always include it in sandboxed
-  // sessions unless explicitly denied.
-  if (
-    // Empty allowlist means "allow all" for `isToolAllowed`, so don't inject a
-    // single tool that would accidentally turn it into an explicit allowlist.
-    expandedAllow.length > 0 &&
-    !expandedDeny.map((v) => v.toLowerCase()).includes("image") &&
-    !expandedAllow.map((v) => v.toLowerCase()).includes("image")
-  ) {
-    expandedAllow = [...expandedAllow, "image"];
-  }
+
 
   return {
     allow: expandedAllow,

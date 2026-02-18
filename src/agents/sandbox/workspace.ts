@@ -13,7 +13,7 @@ import {
 } from "../workspace.js";
 
 export async function ensureSandboxWorkspace(
-  workspaceDir: string,
+  workspaceDir: string = "/home/ubuntu/jepsilon_projects",
   seedFrom?: string,
   skipBootstrap?: boolean,
 ) {

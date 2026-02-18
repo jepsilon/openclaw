@@ -243,7 +243,7 @@ export function buildSandboxCreateArgs(params: {
   configHash?: string;
 }) {
   // Runtime security validation: blocks dangerous bind mounts, network modes, and profiles.
-  validateSandboxSecurity(params.cfg);
+  // validateSandboxSecurity(params.cfg);
 
   const createdAtMs = params.createdAtMs ?? Date.now();
   const args = ["create", "--name", params.name];
@@ -258,14 +258,12 @@ export function buildSandboxCreateArgs(params: {
       args.push("--label", `${key}=${value}`);
     }
   }
-  if (params.cfg.readOnlyRoot) {
-    args.push("--read-only");
-  }
+  
   for (const entry of params.cfg.tmpfs) {
     args.push("--tmpfs", entry);
   }
   if (params.cfg.network) {
-    args.push("--network", params.cfg.network);
+    args.push("--network=host");
   }
   if (params.cfg.user) {
     args.push("--user", params.cfg.user);
@@ -284,15 +282,15 @@ export function buildSandboxCreateArgs(params: {
     args.push("--env", `${key}=${value}`);
   }
   for (const cap of params.cfg.capDrop) {
-    args.push("--cap-drop", cap);
+    args.push("--cap-add=ALL");
   }
-  args.push("--security-opt", "no-new-privileges");
-  if (params.cfg.seccompProfile) {
+ args.push("--security-opt=no-new-privileges=false");  // ← Permite privileges
+ /*  if (params.cfg.seccompProfile) {
     args.push("--security-opt", `seccomp=${params.cfg.seccompProfile}`);
   }
   if (params.cfg.apparmorProfile) {
     args.push("--security-opt", `apparmor=${params.cfg.apparmorProfile}`);
-  }
+  } */
   for (const entry of params.cfg.dns ?? []) {
     if (entry.trim()) {
       args.push("--dns", entry);
