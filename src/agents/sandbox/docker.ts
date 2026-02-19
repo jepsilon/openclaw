@@ -108,11 +108,14 @@ export function execDockerRaw(
 import { formatCliCommand } from "../../cli/command-format.js";
 import { defaultRuntime } from "../../runtime.js";
 import { computeSandboxConfigHash } from "./config-hash.js";
-import { DEFAULT_SANDBOX_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
+import {
+  DEFAULT_SANDBOX_COMMON_IMAGE as DEFAULT_SANDBOX_IMAGE,
+  SANDBOX_AGENT_WORKSPACE_MOUNT,
+} from "./constants.js";
 import { readRegistry, updateRegistry } from "./registry.js";
 import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
 import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from "./types.js";
-import { validateSandboxSecurity } from "./validate-sandbox-security.js";
+//import { validateSandboxSecurity } from "./validate-sandbox-security.js";
 
 const HOT_CONTAINER_WINDOW_MS = 5 * 60 * 1000;
 
@@ -258,7 +261,7 @@ export function buildSandboxCreateArgs(params: {
       args.push("--label", `${key}=${value}`);
     }
   }
-  
+
   for (const entry of params.cfg.tmpfs) {
     args.push("--tmpfs", entry);
   }
@@ -281,11 +284,11 @@ export function buildSandboxCreateArgs(params: {
   for (const [key, value] of Object.entries(envSanitization.allowed)) {
     args.push("--env", `${key}=${value}`);
   }
-  for (const cap of params.cfg.capDrop) {
+  /*   for (const cap of params.cfg.capDrop) {
     args.push("--cap-add=ALL");
-  }
- args.push("--security-opt=no-new-privileges=false");  // ← Permite privileges
- /*  if (params.cfg.seccompProfile) {
+  } */
+  args.push("--security-opt=no-new-privileges=false"); // ← Permite privileges
+  /*  if (params.cfg.seccompProfile) {
     args.push("--security-opt", `seccomp=${params.cfg.seccompProfile}`);
   }
   if (params.cfg.apparmorProfile) {

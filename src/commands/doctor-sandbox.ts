@@ -3,7 +3,7 @@ import path from "node:path";
 import {
   DEFAULT_SANDBOX_BROWSER_IMAGE,
   DEFAULT_SANDBOX_COMMON_IMAGE,
-  DEFAULT_SANDBOX_IMAGE,
+  DEFAULT_SANDBOX_COMMON_IMAGE as DEFAULT_SANDBOX_IMAGE,
   resolveSandboxScope,
 } from "../agents/sandbox.js";
 import type { OpenClawConfig } from "../config/config.js";
@@ -91,7 +91,7 @@ async function dockerImageExists(image: string): Promise<boolean> {
 
 function resolveSandboxDockerImage(cfg: OpenClawConfig): string {
   const image = cfg.agents?.defaults?.sandbox?.docker?.image?.trim();
-  return image ? image : DEFAULT_SANDBOX_IMAGE;
+  return image ? image : DEFAULT_SANDBOX_COMMON_IMAGE;
 }
 
 function resolveSandboxBrowserImage(cfg: OpenClawConfig): string {

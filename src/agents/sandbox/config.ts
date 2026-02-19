@@ -1,3 +1,4 @@
+import type { OpenClawConfig } from "../../config/config.js";
 // import type { OpenClawConfig } from "../../config/config.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import {
@@ -9,10 +10,9 @@ import {
   DEFAULT_SANDBOX_BROWSER_VNC_PORT,
   DEFAULT_SANDBOX_CONTAINER_PREFIX,
   DEFAULT_SANDBOX_IDLE_HOURS,
-  DEFAULT_SANDBOX_IMAGE,
+  DEFAULT_SANDBOX_COMMON_IMAGE as DEFAULT_SANDBOX_IMAGE,
   DEFAULT_SANDBOX_MAX_AGE_DAYS,
   DEFAULT_SANDBOX_WORKDIR,
-  DEFAULT_SANDBOX_WORKSPACE_ROOT,
 } from "./constants.js";
 import { resolveSandboxToolPolicyForAgent } from "./tool-policy.js";
 import type {
@@ -27,16 +27,16 @@ export function resolveSandboxBrowserDockerCreateConfig(params: {
   docker: SandboxDockerConfig;
   browser: SandboxBrowserConfig;
 }): SandboxDockerConfig {
-const base: SandboxDockerConfig = {
-  ...params.docker,
-  network: "host",  // ← Cambia de "none" o "bridge" a "host" (full network access)
-  image: params.browser?.image ?? DEFAULT_SANDBOX_IMAGE,
-  readOnlyRoot: false,  // ← Desactiva read-only rootfs
-  tmpfs: ["/tmp", "/var/tmp", "/run"],  // OK
-  capDrop: [],  // ← Quita drop de capabilities (full access)
-  seccompProfile: undefined,  // ← No seccomp
-  apparmorProfile: undefined, // ← No apparmor
-};
+  const base: SandboxDockerConfig = {
+    ...params.docker,
+    network: "host", // ← Cambia de "none" o "bridge" a "host" (full network access)
+    image: params.browser?.image ?? DEFAULT_SANDBOX_IMAGE,
+    readOnlyRoot: false, // ← Desactiva read-only rootfs
+    tmpfs: ["/tmp", "/var/tmp", "/run"], // OK
+    capDrop: [], // ← Quita drop de capabilities (full access)
+    seccompProfile: undefined, // ← No seccomp
+    apparmorProfile: undefined, // ← No apparmor
+  };
   return params.browser.binds !== undefined ? { ...base, binds: params.browser.binds } : base;
 }
 
@@ -108,20 +108,27 @@ export function resolveSandboxBrowserConfig(params: {
   const binds = [...(globalBrowser?.binds ?? []), ...(agentBrowser?.binds ?? [])];
   // Treat `binds: []` as an explicit override, so it can disable `docker.binds` for the browser container.
   const bindsConfigured = globalBrowser?.binds !== undefined || agentBrowser?.binds !== undefined;
-return {
-  enabled: agentBrowser?.enabled ?? globalBrowser?.enabled ?? false,
-  image: agentBrowser?.image ?? globalBrowser?.image ?? DEFAULT_SANDBOX_BROWSER_IMAGE,
-  containerPrefix: agentBrowser?.containerPrefix ?? globalBrowser?.containerPrefix ?? DEFAULT_SANDBOX_BROWSER_PREFIX,
-  cdpPort: agentBrowser?.cdpPort ?? globalBrowser?.cdpPort ?? DEFAULT_SANDBOX_BROWSER_CDP_PORT,
-  vncPort: agentBrowser?.vncPort ?? globalBrowser?.vncPort ?? DEFAULT_SANDBOX_BROWSER_VNC_PORT,
-  noVncPort: agentBrowser?.noVncPort ?? globalBrowser?.noVncPort ?? DEFAULT_SANDBOX_BROWSER_NOVNC_PORT,
-  headless: agentBrowser?.headless ?? globalBrowser?.headless ?? false,
-  enableNoVnc: agentBrowser?.enableNoVnc ?? globalBrowser?.enableNoVnc ?? true,
-  allowHostControl: agentBrowser?.allowHostControl ?? globalBrowser?.allowHostControl ?? true,  // ← Full control
-  autoStart: agentBrowser?.autoStart ?? globalBrowser?.autoStart ?? true,
-  autoStartTimeoutMs: agentBrowser?.autoStartTimeoutMs ?? globalBrowser?.autoStartTimeoutMs ?? DEFAULT_SANDBOX_BROWSER_AUTOSTART_TIMEOUT_MS,
-  binds: bindsConfigured ? binds : undefined,
-};
+  return {
+    enabled: agentBrowser?.enabled ?? globalBrowser?.enabled ?? false,
+    image: agentBrowser?.image ?? globalBrowser?.image ?? DEFAULT_SANDBOX_BROWSER_IMAGE,
+    containerPrefix:
+      agentBrowser?.containerPrefix ??
+      globalBrowser?.containerPrefix ??
+      DEFAULT_SANDBOX_BROWSER_PREFIX,
+    cdpPort: agentBrowser?.cdpPort ?? globalBrowser?.cdpPort ?? DEFAULT_SANDBOX_BROWSER_CDP_PORT,
+    vncPort: agentBrowser?.vncPort ?? globalBrowser?.vncPort ?? DEFAULT_SANDBOX_BROWSER_VNC_PORT,
+    noVncPort:
+      agentBrowser?.noVncPort ?? globalBrowser?.noVncPort ?? DEFAULT_SANDBOX_BROWSER_NOVNC_PORT,
+    headless: agentBrowser?.headless ?? globalBrowser?.headless ?? false,
+    enableNoVnc: agentBrowser?.enableNoVnc ?? globalBrowser?.enableNoVnc ?? true,
+    allowHostControl: agentBrowser?.allowHostControl ?? globalBrowser?.allowHostControl ?? true, // ← Full control
+    autoStart: agentBrowser?.autoStart ?? globalBrowser?.autoStart ?? true,
+    autoStartTimeoutMs:
+      agentBrowser?.autoStartTimeoutMs ??
+      globalBrowser?.autoStartTimeoutMs ??
+      DEFAULT_SANDBOX_BROWSER_AUTOSTART_TIMEOUT_MS,
+    binds: bindsConfigured ? binds : undefined,
+  };
 }
 
 export function resolveSandboxPruneConfig(params: {
@@ -158,10 +165,11 @@ export function resolveSandboxConfigForAgent(
   const toolPolicy = resolveSandboxToolPolicyForAgent(cfg, agentId);
 
   return {
-    mode: agentSandbox?.mode ?? agent?.mode ?? "off",  // Ya es "off" — OK, no cambiar
+    mode: agentSandbox?.mode ?? agent?.mode ?? "off", // Ya es "off" — OK, no cambiar
     scope,
-    workspaceAccess: agentSandbox?.workspaceAccess ?? agent?.workspaceAccess ?? "full",  // ← CAMBIA "none" a "full"
-    workspaceRoot: agentSandbox?.workspaceRoot ?? agent?.workspaceRoot ?? "/home/ubuntu/jepsilon_projects",  // ← Tu path deseado
+    workspaceAccess: agentSandbox?.workspaceAccess ?? agent?.workspaceAccess ?? "rw", // ← "rw" en vez de "full"
+    workspaceRoot:
+      agentSandbox?.workspaceRoot ?? agent?.workspaceRoot ?? "/home/ubuntu/jepsilon_projects", // ← Tu path deseado
     docker: resolveSandboxDockerConfig({
       scope,
       globalDocker: agent?.docker,
@@ -173,8 +181,8 @@ export function resolveSandboxConfigForAgent(
       agentBrowser: agentSandbox?.browser,
     }),
     tools: {
-      allow: toolPolicy.allow || ["*"],  // ← Allow all tools
-      deny: toolPolicy.deny || [],       // ← No deny nada
+      allow: toolPolicy.allow || ["*"], // ← Allow all tools
+      deny: toolPolicy.deny || [], // ← No deny nada
     },
     prune: resolveSandboxPruneConfig({
       scope,
